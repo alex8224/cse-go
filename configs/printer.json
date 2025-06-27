@@ -1,0 +1,7 @@
+{
+    "name": "printer",
+    "version": "1.0.0",
+    "description": "一个用于处理打印任务的功能组件。",
+    "cmd":"printer",
+    "cmd_args": []
+  }

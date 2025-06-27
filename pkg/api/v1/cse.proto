@@ -1,0 +1,153 @@
+// 指定使用 proto3 语法
+syntax = "proto3";
+
+// 定义包名，这会映射到 Go 语言的包名
+package v1;
+
+// Go 包路径选项，protoc 编译器会使用这个路径来生成代码
+option go_package = "cse-go/pkg/api/v1";
+
+// -----------------------------------------------------------------------------
+// ComponentService: 由各功能组件实现，供主应用程序调用
+// -----------------------------------------------------------------------------
+service ComponentService {
+  // 执行一个命令
+  rpc ExecuteCommand(ExecuteCommandRequest) returns (ExecuteCommandResponse) {}
+
+  // 获取组件的元数据信息
+  rpc GetMetadata(GetMetadataRequest) returns (ComponentMetadata) {}
+
+  // 获取组件当前的健康状态
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
+
+  // 请求组件优雅地关闭
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse) {}
+}
+
+// [新增] 用于封装命令参数的消息
+message CommandParams {
+  string json_payload = 1;
+}
+
+// [新增] 用于封装命令返回结果的消息
+message CommandResult {
+  string json_payload = 1;
+}
+
+// [已更新] ExecuteCommand 方法的请求体
+message ExecuteCommandRequest {
+  // 要执行的命令名称
+  string command_name = 1;
+  // 命令所需的参数
+  CommandParams params = 2;
+}
+
+// [已更新] ExecuteCommand 方法的响应体
+message ExecuteCommandResponse {
+  // 命令是否执行成功
+  bool success = 1;
+  // 命令执行返回的结果
+  CommandResult result = 2;
+  // 如果执行失败，此字段包含错误信息
+  string error_message = 3;
+}
+
+// --- 以下为原有定义，保持不变 ---
+
+// 组件状态枚举
+enum ComponentState {
+  STATE_UNKNOWN = 0;
+  NOT_LOADED = 1;
+  LOADED = 2;
+  INITIALIZED = 3;
+  RUNNING = 4;
+  UPDATING = 5;
+  UNLOADING = 6;
+  UNLOADED = 7;
+  ERROR = 8;
+}
+
+// GetMetadata 方法的请求体 (空)
+message GetMetadataRequest {}
+
+// 组件的元数据信息
+message ComponentMetadata {
+  string name = 1;
+  string version = 2;
+  string description = 3;
+  string author = 4;
+  repeated CommandInfo provided_commands = 5;
+}
+
+// 单个命令的详细信息
+message CommandInfo {
+  string command_name = 1;
+  string description = 2;
+  string parameters_schema = 3;
+  string result_schema = 4;
+}
+
+// GetStatus 方法的请求体 (空)
+message GetStatusRequest {}
+
+// GetStatus 方法的响应体
+message GetStatusResponse {
+  ComponentState current_state = 1;
+  string message = 2;
+}
+
+// Shutdown 方法的请求体 (空)
+message ShutdownRequest {}
+
+// Shutdown 方法的响应体
+message ShutdownResponse {
+  bool acknowledged = 1;
+  string message = 2;
+}
+
+
+// -----------------------------------------------------------------------------
+// UpdaterNotificationService: 由主应用程序实现，供 cse-updater 调用
+// -----------------------------------------------------------------------------
+service UpdaterNotificationService {
+  rpc NotifyUpdateAvailable(UpdateNotificationRequest) returns (UpdateNotificationResponse) {}
+  rpc GetComponentVersion(ComponentVersionRequest) returns (ComponentVersionResponse) {}
+}
+
+message UpdateNotificationRequest {
+  string component_name = 1;
+  string new_version_path = 2;
+  string checksum = 3;
+}
+
+message UpdateNotificationResponse {
+  bool acknowledged = 1;
+  string message = 2;
+}
+
+message ComponentVersionRequest {
+  string component_name = 1;
+}
+
+message ComponentVersionResponse {
+  string version = 1;
+  bool found = 2;
+}
+
+// -----------------------------------------------------------------------------
+// ComponentDiscoveryService: 由主应用程序实现，供功能组件在启动时调用
+// -----------------------------------------------------------------------------
+service ComponentDiscoveryService {
+  rpc RegisterComponent(RegisterComponentRequest) returns (RegisterComponentResponse) {}
+}
+
+message RegisterComponentRequest {
+  string name = 1;
+  string grpc_address = 2;
+  int32 pid = 3;
+}
+
+message RegisterComponentResponse {
+  bool success = 1;
+  string message = 2;
+}
