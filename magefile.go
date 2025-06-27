@@ -1,7 +1,5 @@
 //go:build mage
 
-// magefile.go 是一个使用 Go 语言编写的构建脚本，用于替代 Makefile。
-// 它必须以 '//go:build mage' 这个构建标签开头。
 package main
 
 import (
@@ -10,11 +8,10 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/magefile/mage/mg" // mg 包是 mage 的核心，包含了任务依赖等功能
-	"github.com/magefile/mage/sh" // sh 包用于方便地执行外部命令
+	"github.com/magefile/mage/mg"
+	"github.com/magefile/mage/sh"
 )
 
-// Default 命名空间可以让我们通过 `mage build` 而不是 `mage:build` 来调用任务
 var Default = Build
 
 const (
@@ -66,9 +63,6 @@ func Clean() {
 	os.RemoveAll(buildDir)
 }
 
-// --- 辅助函数 ---
-
-// build 是一个通用的构建函数
 func build(name, path string) error {
 	fmt.Printf("Building %s...\n", name)
 	// 使用 sh.RunV 来执行 `go build` 命令，sh.RunV 会将命令的输出流式传输到控制台

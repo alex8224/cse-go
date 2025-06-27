@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -68,7 +69,7 @@ func (m *ComponentManager) LaunchComponents(configDir, discoveryAddr string) {
 		}
 
 		var config ComponentConfig
-		if err := json.Unmarshal(configData, &config); err != nil {
+		if unmarshalErr := json.Unmarshal(configData, &config); unmarshalErr != nil {
 			log.Printf("错误: 解析配置文件 %s 失败: %v", configPath, err)
 			continue
 		}
@@ -158,9 +159,35 @@ func (m *ComponentManager) ShutdownAllComponents() {
 			defer cancel()
 			_, err := comp.Client.Shutdown(ctx, &pb.ShutdownRequest{})
 			if err != nil {
-				log.Printf("关闭组件 '%s' 时出错 (可能已被终止): %v", name, err)
-				// 如果 gRPC 调用失败，直接终止进程
-				comp.Cmd.Process.Kill()
+				// 检查是否是连接关闭错误（正常的关闭流程）
+				errorMsg := err.Error()
+				if strings.Contains(errorMsg, "connection was forcibly closed") ||
+					strings.Contains(errorMsg, "transport is closing") ||
+					strings.Contains(errorMsg, "connection refused") ||
+					strings.Contains(errorMsg, "EOF") {
+					log.Printf("组件 '%s' 已正常关闭", name)
+				} else {
+					log.Printf("关闭组件 '%s' 时出错: %v，尝试强制终止", name, err)
+					if comp.Cmd.Process != nil {
+						comp.Cmd.Process.Kill()
+					}
+				}
+			} else {
+				log.Printf("组件 '%s' 收到关闭信号，等待其自行退出...", name)
+				// 等待组件自行退出，如果超时则强制终止
+				done := make(chan error, 1)
+				go func() {
+					done <- comp.Cmd.Wait()
+				}()
+				select {
+				case <-done:
+					log.Printf("组件 '%s' 已正常退出", name)
+				case <-time.After(3 * time.Second):
+					log.Printf("组件 '%s' 退出超时，强制终止", name)
+					if comp.Cmd.Process != nil {
+						comp.Cmd.Process.Kill()
+					}
+				}
 			}
 			// 关闭 gRPC 连接
 			if comp.Conn != nil {

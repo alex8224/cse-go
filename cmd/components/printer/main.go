@@ -93,12 +93,20 @@ func (s *printerServer) GetStatus(ctx context.Context, req *pb.GetStatusRequest)
 
 func (s *printerServer) Shutdown(ctx context.Context, req *pb.ShutdownRequest) (*pb.ShutdownResponse, error) {
 	log.Println("[Printer Component] Supervisor 调用了 Shutdown 方法...")
+	
+	// 先返回响应，确保supervisor收到确认
+	response := &pb.ShutdownResponse{Acknowledged: true, Message: "Shutdown request received."}
+	
+	// 延迟关闭，给响应足够时间发送
 	go func() {
-		time.Sleep(time.Second)
+		time.Sleep(100 * time.Millisecond) // 缩短延迟，确保响应能发送
+		log.Println("[Printer Component] 正在优雅关闭gRPC服务器...")
 		s.grpcServer.GracefulStop()
+		log.Println("[Printer Component] 组件已关闭")
 		os.Exit(0)
 	}()
-	return &pb.ShutdownResponse{Acknowledged: true, Message: "Shutdown request received."}, nil
+	
+	return response, nil
 }
 
 func startMyService() (net.Listener, *grpc.Server) {

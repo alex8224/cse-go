@@ -5,8 +5,9 @@ package commands
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 
+	utils "cse-go/cmd/utils"
 	"cse-go/internal/commandbus" // [已更新] 导入新的共享接口包
 	pb "cse-go/pkg/api/v1"
 )
@@ -34,9 +35,13 @@ func (c *GetPrintersCmd) GetInfo() *pb.CommandInfo {
 
 // Execute 在非 Windows 系统上返回一个空列表
 func (c *GetPrintersCmd) Execute(params *pb.CommandParams) (*pb.CommandResult, error) {
-	fmt.Println("Warning: 'print.getPrinters' is not supported on this OS.")
+	log.Printf("'print.getPrinters' 不支持这个操作系统. %s", utils.GetOSType())
 	emptyList, _ := json.Marshal([]string{})
 	return &pb.CommandResult{
 		JsonPayload: string(emptyList),
 	}, nil
+}
+
+func init() {
+	GlobalRegistry.Register(&GetPrintersCmd{})
 }

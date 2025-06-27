@@ -80,3 +80,5 @@ tmp/
 # Local development
 .local/
 local/
+.exe
+build/*

@@ -13,6 +13,8 @@ import (
 	"cse-go/cmd/supervisor/manager" // [已更新] 导入新的 manager 包
 	pb "cse-go/pkg/api/v1"
 
+	utils "cse-go/cmd/utils"
+
 	"google.golang.org/grpc"
 )
 
@@ -34,7 +36,7 @@ func (s *discoveryServer) RegisterComponent(ctx context.Context, req *pb.Registe
 		log.Printf("[Discovery Service] 错误: 处理组件 '%s' 注册失败: %v", req.Name, err)
 		return &pb.RegisterComponentResponse{Success: false, Message: err.Error()}, nil
 	}
-	return &pb.RegisterComponentResponse{Success: true, Message: "Registration successful"}, nil
+	return &pb.RegisterComponentResponse{Success: true, Message: ""}, nil
 }
 
 // startDiscoveryService 启动监听组件注册的 gRPC 服务
@@ -57,7 +59,7 @@ func startDiscoveryService(manager *manager.ComponentManager) *grpc.Server {
 }
 
 func main() {
-	log.Println("CSE 主应用程序 (Supervisor) 启动...")
+	log.Printf("CSE 主应用程序 (Supervisor) 启动, 当前操作系统 %s...", utils.GetOSType())
 	compManager := manager.NewComponentManager()
 
 	// 1. 启动 gRPC 发现服务
