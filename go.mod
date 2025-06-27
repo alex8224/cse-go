@@ -3,6 +3,7 @@ module cse-go
 go 1.23.1
 
 require (
+	github.com/godoes/printers v0.1.4
 	github.com/magefile/mage v1.15.0
 	google.golang.org/grpc v1.73.0
 	google.golang.org/protobuf v1.36.6

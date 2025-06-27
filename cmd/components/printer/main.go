@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 
-	// [已更新] 导入新的包路径
 	"cse-go/cmd/components/printer/commands"
 
 	"cse-go/internal/commandbus"
@@ -39,11 +38,14 @@ func NewPrinterServer(grpcServer *grpc.Server) *printerServer {
 
 // registerCommands 初始化并注册所有支持的命令
 func (s *printerServer) registerCommands() {
-	// [已更新] 使用新的 commands 包
-	getPrintersCmd := &commands.GetPrintersCmd{}
+	// [自动注册] 从全局注册器获取所有已注册的命令
+	autoCommands := commands.GlobalRegistry.GetCommands()
+	for name, cmd := range autoCommands {
+		s.commandMap[name] = cmd
+		log.Printf("[Printer Component] 命令 '%s' 已自动加载到组件中", name)
+	}
 
-	s.commandMap[getPrintersCmd.Name()] = getPrintersCmd
-	log.Printf("[Printer Component] 命令 '%s' 已注册。", getPrintersCmd.Name())
+	log.Printf("[Printer Component] 共加载了 %d 个命令", len(s.commandMap))
 }
 
 // ExecuteCommand 从注册表中查找并执行命令
@@ -116,7 +118,7 @@ func startMyService() (net.Listener, *grpc.Server) {
 }
 
 func registerToSupervisor(discoveryAddr, myAddr, componentName string) {
-	conn, err := grpc.Dial(discoveryAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(discoveryAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("无法连接到发现服务 at %s: %v", discoveryAddr, err)
 	}
